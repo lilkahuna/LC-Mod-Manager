@@ -1,5 +1,4 @@
 # Lethal Companmy Mod Manager
-Lethal Companmy Mod Manager
 
 ## Description
 
