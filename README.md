@@ -1,4 +1,4 @@
-# Lethal Companmy Mod Manager
+# Lethal Company Mod Manager
 
 ## Description
 
