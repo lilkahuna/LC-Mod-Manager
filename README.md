@@ -1,5 +1,7 @@
-# Lethal Company Mod Manager
+# LC Mod Manager
 
 ## Description
 
-A custom mod manager for the multiplayer horror game Lethal Company. This makes installing, deleting and viewing mods much easier for the average user. This app is built using Electron.js, React.js, Tailwind CSS, and Vite.
+A custom mod manager for minecraft. Allows for a person to upload mods to a database which updates all clients modpacks. This app is built using Electron.js, React.js, Tailwind CSS, and Vite.
+
+Everything is a work in progress and many minor details of the storage of mods is still in developement.
