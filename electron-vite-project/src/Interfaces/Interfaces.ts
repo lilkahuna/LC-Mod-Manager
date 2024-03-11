@@ -6,5 +6,5 @@ export interface IUserSettings
 export interface IModItemProps
 {
   modName: string,
-  filePath: string
+  size?: number
 }

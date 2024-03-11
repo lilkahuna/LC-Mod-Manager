@@ -1,17 +1,15 @@
 import { app, BrowserWindow, dialog, ipcMain, shell } from 'electron';
 import path from 'node:path';
-import {IUserSettings} from "../src/Interfaces/Interfaces"
+import { IUserSettings } from "../src/Interfaces/Interfaces"
 process.env.DIST = path.join(__dirname, '../dist');
 process.env.VITE_PUBLIC = app.isPackaged ? process.env.DIST : path.join(process.env.DIST, '../public');
 let win: BrowserWindow | null
 const VITE_DEV_SERVER_URL = process.env['VITE_DEV_SERVER_URL'];
-
 import fs from 'fs';
 
 const defaultPath = app.getPath('userData')
 const downloadPath = app.getPath('downloads')
 const modsFilePath: string = readJsonFile(path.join(defaultPath, 'UserPrefs.json')).filePath 
-
 
 function saveJsonFile(selectedFilePath: string[]) {
   // Get the only folder path
@@ -20,14 +18,13 @@ function saveJsonFile(selectedFilePath: string[]) {
   }
 
   const jsonData = JSON.stringify(userData)
-  fs.writeFile(defaultPath + "/UserPrefs.json", jsonData, (err: unknown) => {
+  fs.writeFile(defaultPath + "/UserPrefs.json", jsonData, (err: any) => {
     if (err) {
       console.error('Error writing JSON file:', err);
     } else {
       console.log('JSON file written successfully!');
     }
   })
-  console.log(defaultPath)
 }
 
 function readJsonFile(filePath: string): IUserSettings
@@ -64,7 +61,7 @@ function runFirstTimeSetUp() {
     });
 }
 
-function installMods() {
+function pushMods() {
   const options: Electron.OpenDialogOptions = {
     title: "Please Select a pathway",
     defaultPath: downloadPath,
@@ -72,10 +69,10 @@ function installMods() {
   };
 
   dialog.showOpenDialog(options)
-    .then((result) => {
+    .then((result: Electron.OpenDialogReturnValue) => {
       if (!result.canceled && result.filePaths.length > 0) {
         const filePaths = result.filePaths;
-        console.log('Selected file paths:', filePaths);
+        
       } else {
         console.log("Quit dialog")
       }
@@ -86,10 +83,21 @@ function installMods() {
     });
 }
 
-ipcMain.on('install-mods' ,() => {
-  installMods()
+ipcMain.on('push-mods' ,() => {
+  pushMods()
 })
 
+ipcMain.on('get-installed-mods', () => {
+  var mods: string[] = []
+  console.log(modsFilePath)
+  fs.readdir(modsFilePath, (err: any, files: string[]) => {
+    for (let index = 0; index < files.length; index++) {
+      mods.push(files[index])
+    }
+  })
+  
+
+})
 
 // Function to create the main window
 function createMainWindow() {
@@ -119,16 +127,10 @@ function createMainWindow() {
   });
 }
 
-ipcMain.on('open-external', (_event: unknown, link: string) => {
-  shell.openExternal(link)
+ipcMain.on('open-external', (event: any, link: string) => {
+  shell.openExternal(link)  
 })
 
-function getAllMods(dir: string) : string[]
-{
-  var mods: string[] 
-  mods = fs.readdirSync(dir)
-  return mods
-}
 
 // Quit when all windows are closed, except on macOS.
 app.on('window-all-closed', () => {
@@ -149,9 +151,11 @@ app.on('activate', () => {
 // Create a window when the app is ready
 if (fs.existsSync(defaultPath + "/UserPrefs.json"))
 {
+  console.log("HELLLO")
   app.whenReady().then(createMainWindow)
 }
 else
 {
+  console.log("HELLLOOOOOOOOO WE ARE HEREEE")
   app.whenReady().then(runFirstTimeSetUp)
 }
