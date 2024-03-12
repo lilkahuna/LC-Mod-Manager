@@ -6,5 +6,11 @@ export interface IUserSettings
 export interface IModItemProps
 {
   modName: string,
-  size?: number
+  size: number
+}
+
+export interface ModStats
+{
+  name: string,
+  size: number
 }

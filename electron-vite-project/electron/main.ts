@@ -1,6 +1,6 @@
-import { app, BrowserWindow, dialog, ipcMain, shell } from 'electron';
+import { app, BrowserWindow, dialog, ipcMain, shell, webContents } from 'electron';
 import path from 'node:path';
-import { IUserSettings } from "../src/Interfaces/Interfaces"
+import { IUserSettings, ModStats } from "../src/Interfaces/Interfaces"
 process.env.DIST = path.join(__dirname, '../dist');
 process.env.VITE_PUBLIC = app.isPackaged ? process.env.DIST : path.join(process.env.DIST, '../public');
 let win: BrowserWindow | null
@@ -69,7 +69,7 @@ function pushMods() {
   };
 
   dialog.showOpenDialog(options)
-    .then((result: Electron.OpenDialogReturnValue) => {
+    .then((result) => {
       if (!result.canceled && result.filePaths.length > 0) {
         const filePaths = result.filePaths;
         
@@ -87,16 +87,15 @@ ipcMain.on('push-mods' ,() => {
   pushMods()
 })
 
-ipcMain.on('get-installed-mods', () => {
-  var mods: string[] = []
-  console.log(modsFilePath)
-  fs.readdir(modsFilePath, (err: any, files: string[]) => {
-    for (let index = 0; index < files.length; index++) {
-      mods.push(files[index])
-    }
-  })
+ipcMain.handle('get-installed-mods', () => {
+  let rawMods: string[] = fs.readdirSync(modsFilePath)
+  let mods: ModStats[] = []
   
+  rawMods.forEach((element) => {
+    mods.push({name: element.split(".")[0].split("+")[0].split("-")[0].replace("_", " ").toUpperCase(), size: Number((fs.statSync(path.join(modsFilePath, element)).size * 0.000001).toFixed(2))})
+  })
 
+  return mods
 })
 
 // Function to create the main window
@@ -127,7 +126,7 @@ function createMainWindow() {
   });
 }
 
-ipcMain.on('open-external', (event: any, link: string) => {
+ipcMain.on('open-external', (event, link) => {
   shell.openExternal(link)  
 })
 

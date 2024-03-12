@@ -1,15 +1,15 @@
 import ModItem from '../Components/ModItem'
-import React, { useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import img from '../assets/github.png'
 import '../index.css'
-import { ipcMain, ipcRenderer } from 'electron'
+import { ModStats } from '../Interfaces/Interfaces'
 
 function App() {
 
-  const [mods, setMods] = useState<string[]>([])
+  const [mods, setMods] = useState<ModStats[]>([])
 
   useEffect(() => {
-    window.ipcRenderer.sendSync('get-installed-mods')
+    window.ipcRenderer.invoke('get-installed-mods').then((data) => setMods(data))
     
   }, [])
   
@@ -31,7 +31,7 @@ function App() {
           <h1 className='text-center text-2xl text-indigo-500'>Installed Mods</h1>
           <div className='m-4 max-w-lg mx-auto border-4 bg-slate-200 border-slate-200 rounded-md shadow-md overflow-y-auto h-48'>
           {
-            mods.map((file, index) => <ModItem key={index} modName={file} />)
+            mods.map((file, index) => <ModItem key={index} modName={file.name} size={file.size} />)
           }
           </div>
         
