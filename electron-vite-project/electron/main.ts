@@ -9,7 +9,7 @@ import fs from 'fs';
 
 const defaultPath = app.getPath('userData')
 const downloadPath = app.getPath('downloads')
-const modsFilePath: string = readJsonFile(path.join(defaultPath, 'UserPrefs.json')).filePath 
+var modsFilePath: string = ""
 
 function saveJsonFile(selectedFilePath: string[]) {
   // Get the only folder path
@@ -18,9 +18,10 @@ function saveJsonFile(selectedFilePath: string[]) {
   }
 
   const jsonData = JSON.stringify(userData)
-  fs.writeFile(defaultPath + "/UserPrefs.json", jsonData, (err: any) => {
+  
+  fs.writeFile(defaultPath + "/UserPrefs.json", jsonData, (err) => {
     if (err) {
-      console.error('Error writing JSON file:', err);
+      console.error('Error writing JSON file:', err.message);
     } else {
       console.log('JSON file written successfully!');
     }
@@ -89,12 +90,17 @@ ipcMain.on('push-mods' ,() => {
 
 ipcMain.handle('get-installed-mods', () => {
   let rawMods: string[] = fs.readdirSync(modsFilePath)
+  console.log(rawMods)
   let mods: ModStats[] = []
   
-  rawMods.forEach((element) => {
-    mods.push({name: element.split(".")[0].split("+")[0].split("-")[0].replace("_", " ").toUpperCase(), size: Number((fs.statSync(path.join(modsFilePath, element)).size * 0.000001).toFixed(2))})
-  })
-
+  for (let index = 0; index < rawMods.length; index++) {
+    // Keeping DS_Store files from being in the mods array
+    if (rawMods[index] != ".DS_Store")
+    {
+      mods.push({name: rawMods[index].split(".")[0].split("+")[0].split("-")[0].replace("_", " ").toUpperCase().split("1")[0], size: Number((fs.statSync(path.join(modsFilePath, rawMods[index])).size * 0.000001).toFixed(2))})
+    }
+  }
+  console.log(mods)
   return mods
 })
 
@@ -148,13 +154,13 @@ app.on('activate', () => {
 });
 
 // Create a window when the app is ready
-if (fs.existsSync(defaultPath + "/UserPrefs.json"))
+if (!fs.existsSync(defaultPath + "/UserPrefs.json"))
 {
-  console.log("HELLLO")
-  app.whenReady().then(createMainWindow)
+  app.whenReady().then(runFirstTimeSetUp)
+  modsFilePath = readJsonFile(path.join(defaultPath, 'UserPrefs.json')).filePath
 }
 else
 {
-  console.log("HELLLOOOOOOOOO WE ARE HEREEE")
-  app.whenReady().then(runFirstTimeSetUp)
+  app.whenReady().then(createMainWindow)
+  modsFilePath = readJsonFile(path.join(defaultPath, 'UserPrefs.json')).filePath 
 }

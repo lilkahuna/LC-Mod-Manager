@@ -37,6 +37,7 @@ function App() {
         
           <div className="flex justify-center items-center space-x-4">
             <button className="hover:bg-indigo-400 bg-indigo-500 text-slate-200 px-4 py-2 rounded-md" onClick={() => window.ipcRenderer.send('push-mods')}>Push Mods</button>
+            <button className="hover:bg-indigo-400 bg-indigo-500 text-slate-200 px-4 py-2 rounded-md" onClick={() => window.ipcRenderer.invoke('get-installed-mods').then((data)=>setMods(data))}>Refresh</button>
           </div>
       
         </div>
