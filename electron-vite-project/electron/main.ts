@@ -1,4 +1,6 @@
 import { app, BrowserWindow, dialog, ipcMain, shell, webContents } from 'electron';
+import { FirebaseApp, initializeApp } from "firebase/app";
+import { FirebaseStorage, getStorage, ref, StorageReference, uploadBytes, uploadString } from "firebase/storage";
 import path from 'node:path';
 import { IUserSettings, ModStats } from "../src/Interfaces/Interfaces"
 process.env.DIST = path.join(__dirname, '../dist');
@@ -10,6 +12,21 @@ import fs from 'fs';
 const defaultPath = app.getPath('userData')
 const downloadPath = app.getPath('downloads')
 var modsFilePath: string = ""
+
+
+// Your web app's Firebase configuration
+const firebaseConfig = {
+  apiKey: "AIzaSyCM32etu7DmYYYM2pP1jV85TQ4xscozDBw",
+  authDomain: "lc-mod-manager-storage.firebaseapp.com",
+  projectId: "lc-mod-manager-storage",
+  storageBucket: "lc-mod-manager-storage.appspot.com",
+  messagingSenderId: "184954790771",
+  appId: "1:184954790771:web:b4c9196c4706dae4891b06"
+};
+
+// Initialize Firebase
+const db: FirebaseApp = initializeApp(firebaseConfig);
+const storageApp: FirebaseStorage = getStorage(db)
 
 function saveJsonFile(selectedFilePath: string[]) {
   // Get the only folder path
@@ -72,8 +89,10 @@ function pushMods() {
   dialog.showOpenDialog(options)
     .then((result) => {
       if (!result.canceled && result.filePaths.length > 0) {
-        const filePaths = result.filePaths;
-        
+        var file: Buffer = fs.readFileSync(result.filePaths[0])
+
+        uploadBytes(ref(storageApp, "TestMods/"+result.filePaths[0]), new Blob([file])).then(() => console.log("File Upload Completed"))
+          
       } else {
         console.log("Quit dialog")
       }
@@ -90,7 +109,6 @@ ipcMain.on('push-mods' ,() => {
 
 ipcMain.handle('get-installed-mods', () => {
   let rawMods: string[] = fs.readdirSync(modsFilePath)
-  console.log(rawMods)
   let mods: ModStats[] = []
   
   for (let index = 0; index < rawMods.length; index++) {
@@ -100,7 +118,6 @@ ipcMain.handle('get-installed-mods', () => {
       mods.push({name: rawMods[index].split(".")[0].split("+")[0].split("-")[0].replace("_", " ").toUpperCase().split("1")[0], size: Number((fs.statSync(path.join(modsFilePath, rawMods[index])).size * 0.000001).toFixed(2))})
     }
   }
-  console.log(mods)
   return mods
 })
 

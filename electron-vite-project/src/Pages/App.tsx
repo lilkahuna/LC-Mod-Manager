@@ -10,7 +10,6 @@ function App() {
 
   useEffect(() => {
     window.ipcRenderer.invoke('get-installed-mods').then((data) => setMods(data))
-    
   }, [])
   
   return (
