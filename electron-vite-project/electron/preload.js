@@ -1,10 +1,17 @@
 import { contextBridge, ipcRenderer } from 'electron'
+const path = require('path/posix')
+const fs = require('fs')
+
+const API = {
+  fileSize: (dir , filePath) => Number((fs.statSync(path.join(dir, filePath)).size * 0.000001).toFixed(2))
+}
+
 
 // --------- Expose some API to the Renderer process ---------
 contextBridge.exposeInMainWorld('ipcRenderer', withPrototype(ipcRenderer))
-
+contextBridge.exposeInMainWorld('customAPI', API)
 // `exposeInMainWorld` can't detect attributes and methods of `prototype`, manually patching it.
-function withPrototype(obj: Record<string, any>) {
+function withPrototype(obj) {
   const protos = Object.getPrototypeOf(obj)
 
   for (const [key, value] of Object.entries(protos)) {
@@ -12,7 +19,7 @@ function withPrototype(obj: Record<string, any>) {
 
     if (typeof value === 'function') {
       // Some native APIs, like `NodeJS.EventEmitter['on']`, don't work in the Renderer process. Wrapping them into a function.
-      obj[key] = function (...args: any) {
+      obj[key] = function (...args) {
         return value.call(obj, ...args)
       }
     } else {
@@ -23,7 +30,7 @@ function withPrototype(obj: Record<string, any>) {
 }
 
 // --------- Preload scripts loading ---------
-function domReady(condition: DocumentReadyState[] = ['complete', 'interactive']) {
+function domReady(condition = ['complete', 'interactive']) {
   return new Promise(resolve => {
     if (condition.includes(document.readyState)) {
       resolve(true)
@@ -38,12 +45,12 @@ function domReady(condition: DocumentReadyState[] = ['complete', 'interactive'])
 }
 
 const safeDOM = {
-  append(parent: HTMLElement, child: HTMLElement) {
+  append(parent, child) {
     if (!Array.from(parent.children).find(e => e === child)) {
       parent.appendChild(child)
     }
   },
-  remove(parent: HTMLElement, child: HTMLElement) {
+  remove(parent, child) {
     if (Array.from(parent.children).find(e => e === child)) {
       parent.removeChild(child)
     }

@@ -1,36 +1,19 @@
-import { app, BrowserWindow, dialog, ipcMain, shell, webContents } from 'electron';
-import { FirebaseApp, initializeApp } from "firebase/app";
-import { FirebaseStorage, getStorage, ref, StorageReference, uploadBytes, uploadString } from "firebase/storage";
+import { app, BrowserWindow, dialog, ipcMain, shell } from 'electron';
 import path from 'node:path';
-import { IUserSettings, ModStats } from "../src/Interfaces/Interfaces"
 process.env.DIST = path.join(__dirname, '../dist');
 process.env.VITE_PUBLIC = app.isPackaged ? process.env.DIST : path.join(process.env.DIST, '../public');
-let win: BrowserWindow | null
+let win
 const VITE_DEV_SERVER_URL = process.env['VITE_DEV_SERVER_URL'];
 import fs from 'fs';
 
+
 const defaultPath = app.getPath('userData')
 const downloadPath = app.getPath('downloads')
-var modsFilePath: string = ""
+var modsFilePath = ""
 
-
-// Your web app's Firebase configuration
-const firebaseConfig = {
-  apiKey: "AIzaSyCM32etu7DmYYYM2pP1jV85TQ4xscozDBw",
-  authDomain: "lc-mod-manager-storage.firebaseapp.com",
-  projectId: "lc-mod-manager-storage",
-  storageBucket: "lc-mod-manager-storage.appspot.com",
-  messagingSenderId: "184954790771",
-  appId: "1:184954790771:web:b4c9196c4706dae4891b06"
-};
-
-// Initialize Firebase
-const db: FirebaseApp = initializeApp(firebaseConfig);
-const storageApp: FirebaseStorage = getStorage(db)
-
-function saveJsonFile(selectedFilePath: string[]) {
+function saveJsonFile(selectedFilePath) {
   // Get the only folder path
-  const userData: IUserSettings = {
+  const userData = {
     filePath: selectedFilePath[0]
   }
 
@@ -45,17 +28,17 @@ function saveJsonFile(selectedFilePath: string[]) {
   })
 }
 
-function readJsonFile(filePath: string): IUserSettings
+function readJsonFile(filePath)
 {
-  const data: string = fs.readFileSync(filePath, 'utf8')
-  const jsonData: IUserSettings = JSON.parse(data)
+  const data = fs.readFileSync(filePath, 'utf8')
+  const jsonData = JSON.parse(data)
 
   return jsonData
 }
 
 // Function to open the file dialog
 function runFirstTimeSetUp() {
-  const options: Electron.OpenDialogOptions = {
+  const options = {
     title: "Please Select a pathway",
     properties: ['openDirectory'],
   };
@@ -79,8 +62,8 @@ function runFirstTimeSetUp() {
     });
 }
 
-function pushMods() {
-  const options: Electron.OpenDialogOptions = {
+ipcMain.on('push-mods', () => {
+  const options = {
     title: "Please Select a pathway",
     defaultPath: downloadPath,
     properties: ['multiSelections', 'openFile'],
@@ -89,10 +72,14 @@ function pushMods() {
   dialog.showOpenDialog(options)
     .then((result) => {
       if (!result.canceled && result.filePaths.length > 0) {
-        var file: Buffer = fs.readFileSync(result.filePaths[0])
+        const {MongoClient, GridFSBucket, ObjectId} = require('mongodb')
+        const client = new MongoClient('mongodb+srv://Lilkahuna:VeL08QojBxofQ014@cluster0.l4he5ba.mongodb.net/')
+        const bucket = new GridFSBucket(client.db('sample_mflix'))
 
-        uploadBytes(ref(storageApp, "TestMods/"+result.filePaths[0]), new Blob([file])).then(() => console.log("File Upload Completed"))
-          
+        result.filePaths.forEach((file, index) => {
+          fs.createReadStream(file).pipe(bucket.openUploadStream(path.basename(file)))
+        })
+        
       } else {
         console.log("Quit dialog")
       }
@@ -101,24 +88,19 @@ function pushMods() {
       console.error(err);
       app.quit();
     });
-}
-
-ipcMain.on('push-mods' ,() => {
-  pushMods()
 })
 
 ipcMain.handle('get-installed-mods', () => {
-  let rawMods: string[] = fs.readdirSync(modsFilePath)
-  let mods: ModStats[] = []
+  let rawMods = fs.readdirSync(modsFilePath)
   
-  for (let index = 0; index < rawMods.length; index++) {
-    // Keeping DS_Store files from being in the mods array
-    if (rawMods[index] != ".DS_Store")
-    {
-      mods.push({name: rawMods[index].split(".")[0].split("+")[0].split("-")[0].replace("_", " ").toUpperCase().split("1")[0], size: Number((fs.statSync(path.join(modsFilePath, rawMods[index])).size * 0.000001).toFixed(2))})
-    }
-  }
-  return mods
+  return {mods: rawMods, dir: modsFilePath}
+})
+
+ipcMain.on('pull-mods', () => {
+  const {MongoClient, GridFSBucket, ObjectId} = require('mongodb')
+  const client = new MongoClient('mongodb+srv://Lilkahuna:VeL08QojBxofQ014@cluster0.l4he5ba.mongodb.net/')
+  const bucket = new GridFSBucket(client.db('sample_mflix'))
+  bucket.find({}).toArray().then((files) => files.forEach((file) => bucket.openDownloadStreamByName(file.filename).pipe(fs.createWriteStream(path.join(modsFilePath, file.filename)))))
 })
 
 // Function to create the main window
@@ -151,6 +133,7 @@ function createMainWindow() {
 
 ipcMain.on('open-external', (event, link) => {
   shell.openExternal(link)  
+  
 })
 
 
